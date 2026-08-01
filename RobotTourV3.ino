@@ -30,7 +30,8 @@ int blueButtonState = 0;
 ArduinoLEDMatrix matrix;
 
 const double wheelC = M_PI * 60;
-double wheelDistance = 145;  //revise
+// double wheelDistance = 145.8; //revise
+double wheelDistance = 148.5;  //revise
 const double stepsPerOneMm = 200 / wheelC * 4;
 const double stepsFor90Turn = wheelDistance / 2 * M_PI / 2 * stepsPerOneMm;
 const double stepsFor360Turn = stepsFor90Turn * 4;
@@ -47,8 +48,8 @@ int numberPauses;
 int pauseTime = 200 * 1000;  //microseconds.
 // double speed[] = { 1, 2, 3 };
 double speed[] = { 0.146447, 0.25, 0.37059, 0.5, 0.62941, 0.75, 0.85355, 0.93301, 0.98296, 1 };
-double mmRamp = 80;
-double angleRamp = 45;
+double mmRamp = 50;
+double angleRamp = 30;
 
 // int instructions[] = {sf,f,rl,rl,lf};
 // int instructions[] = {sf,f,f,rl,f,rr,b,b,rl,rl,f,lf};
@@ -58,11 +59,17 @@ double angleRamp = 45;
 // int instructions[] = {f,rr,f,rr,f,rr};
 // int instructions[] = {sf,f,rr,f,f,rr,rr,f,p,b,b,rr,f,rr,f,f,rr,f,rr,f,p,b,rr,f,f,f,rl,f,f,f,p,b,b,rl,f,f,rr,f,f,rr,f};
 // int instructions[] = {sf,rr,f,rl,f,rr,f,rr,f,p,b,rr,f,rr,f,f,rr,f,rr,f,rl,rl,f,rl,f,f,f,f};
-// int instructions[] = { sf, rr, f, rl, f, rl, f, rl, rl, f, f, rr, f,  b, rr, f, rr, f, f, rr, f, rr, f, rl, rl, f, rl, f, f, f, rl, f, f, rr, f, rl, f, p, b, rl, f, rl, f, f, rl, f };
-int instructions[] = {rl,f,rr,rr,f,b,f,rr,rr,rr};
+// int instructions[] = { sf, rr, f, rl, f, rl, f, rl, rl, f, f, rr, f,  b, rr, f, rr, f, f, rr, f, rr, f, rl, rl, f, rl, f, f, f, rl, f, f, rr, f, rl, f, p, b, rl, f, rl, f, f, rl, f, lf};
+int instructions[] = {sf,f,f,rr,f,b,b,rr,b,f,f,f,rl,b,rl,f,f,rl,f,b};
+int instructions[] = {sf,f,f,rr,f,b,b,rr,b,f,f,f,rl,b,rl,f,f,rl,f,b,b,lf};
+// int instructions[] = {rl,p,rl,p,rl,p,rl,p,rl,rl,rl,rl};
+// int instructions[] = {sf,rr,f,rl,f,rl,  f,rr,b,lf};
+// int instructions[] = {rr,p,rr,p,rr,p,rr,p,rr,rr,rr,rr};
 
 
-long targetTimeMicro = 65 * 1000000;
+int total = 0; //for debugging
+
+long targetTimeMicro = 60 * 1000000;
 //Always Minus 7-8 seconds to target time
 //Better to be overtime than under
 
@@ -145,8 +152,8 @@ void initializeDelay() {
   for (int i = 0; i < size; i++) {
     if (instructions[i] == sf) {
       double totalMm = dowelToAxelDistance + 250 - 2 * mmRamp;
-      for (int i = 0; i < speedSize; i++) {
-        totalMm += (mmRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        totalMm += (mmRamp / speedSize) / speed[j] * 2;
       }
       while (i < size - 1 && (instructions[i + 1] == f || instructions[i + 1] == lf)) {
         if (instructions[i + 1] == f) {
@@ -159,8 +166,8 @@ void initializeDelay() {
       numberMmLinearScaled += totalMm;
     } else if (instructions[i] == f) {
       double totalMm = 500 - 2 * mmRamp;
-      for (int i = 0; i < speedSize; i++) {
-        totalMm += (mmRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        totalMm += (mmRamp / speedSize) / speed[j] * 2;
       }
       while (i < size - 1 && (instructions[i + 1] == f || instructions[i + 1] == lf)) {
         if (instructions[i + 1] == f) {
@@ -173,8 +180,8 @@ void initializeDelay() {
       numberMmLinearScaled += totalMm;
     } else if (instructions[i] == b) {
       double totalMm = 500 - 2 * mmRamp;
-      for (int i = 0; i < speedSize; i++) {
-        totalMm += (mmRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        totalMm += (mmRamp / speedSize) / speed[j] * 2;
       }
       while (i < size - 1 && instructions[i + 1] == b) {
         totalMm += 500;
@@ -183,17 +190,18 @@ void initializeDelay() {
       numberMmLinearScaled += totalMm;
     } else if (instructions[i] == rl) {
       double turns = 90 - 2 * angleRamp;
-      for (int i = 0; i < speedSize; i++) {
-        turns += (angleRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        turns += (angleRamp / speedSize) / speed[j] * 2;
       }
       while (i < size - 1 && (instructions[i + 1] == rl)) {
         turns += 90;
         i++;
       }
+      angleTurnsScaled += turns;
     } else if (instructions[i] == rr) {
       double turns = 90 - 2 * angleRamp;
-      for (int i = 0; i < speedSize; i++) {
-        turns += (angleRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        turns += (angleRamp / speedSize) / speed[j] * 2;
       }
       while (i < size - 1 && (instructions[i + 1] == rr)) {
         turns += 90;
@@ -202,33 +210,27 @@ void initializeDelay() {
       angleTurnsScaled += turns;
     } else if (instructions[i] == lf) {
       double totalMm = 500 - dowelToAxelDistance - 2 * mmRamp;
-      for (int i = 0; i < speedSize; i++) {
-        totalMm += (mmRamp / speedSize) / speed[i] * 2;
+      for (int j = 0; j < speedSize; j++) {
+        totalMm += (mmRamp / speedSize) / speed[j] * 2;
       }
       numberMmLinearScaled += totalMm;
     } else if (instructions[i] == p) {
       numberPauses++;
     }
   }
-  
-  // targetTimeMicro -= numberPauses * pauseTime;
-  // delayInMicro = targetTimeMicro / (numberMmLinearScaled * stepsPerOneMm + angleTurnsScaled / 90 * stepsFor90Turn);
+
+  targetTimeMicro -= numberPauses * pauseTime;
   delayInMicro = targetTimeMicro / (numberMmLinearScaled * stepsPerOneMm + angleTurnsScaled / 90 * stepsFor90Turn);
-  Serial.println("numberMmLinearScaled: ");
-  Serial.println(numberMmLinearScaled);
-  Serial.println("angleTurnsScaled: ");
-  Serial.println(angleTurnsScaled);
-  Serial.println(targetTimeMicro);
-  Serial.println(delayInMicro);
 }
 void runInstructions() {
   int size = sizeof(instructions) / sizeof(instructions[0]);
+
   int speedSize = sizeof(speed) / sizeof(speed[0]) - 1;
   for (int i = 0; i < size; i++) {
     if (instructions[i] == sf) {
       int totalMm = dowelToAxelDistance + 250;
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[i]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[j]);
       }
       while (i < size - 1 && (instructions[i + 1] == f || instructions[i + 1] == lf)) {
         if (instructions[i + 1] == f) {
@@ -239,13 +241,13 @@ void runInstructions() {
         i++;
       }
       forward(totalMm - 2 * mmRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[speedSize - j - 1]);
       }
     } else if (instructions[i] == f) {
       int totalMm = 500;
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[i]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[j]);
       }
       while (i < size - 1 && (instructions[i + 1] == f || instructions[i + 1] == lf)) {
         if (instructions[i + 1] == f) {
@@ -256,56 +258,59 @@ void runInstructions() {
         i++;
       }
       forward(totalMm - 2 * mmRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[speedSize - j - 1]);
       }
     } else if (instructions[i] == b) {
       int totalMm = 500;
-      for (int i = 0; i < speedSize; i++) {
-        backward(mmRamp / speedSize, speed[i]);
+      for (int j = 0; j < speedSize; j++) {
+        backward(mmRamp / speedSize, speed[j]);
       }
       while (i < size - 1 && instructions[i + 1] == b) {
         totalMm += 500;
         i++;
       }
       backward(totalMm - 2 * mmRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        backward(mmRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        backward(mmRamp / speedSize, speed[speedSize - j - 1]);
       }
     } else if (instructions[i] == rl) {
       int totalAngle = 90;
-      for (int i = 0; i < speedSize; i++) {
-        left(angleRamp / speedSize, speed[i]);
+      for (int j = 0; j < speedSize; j++) {
+        left(angleRamp / speedSize, speed[j]);
+        // Serial.println(angleRamp / speedSize);
       }
       while (i < size - 1 && instructions[i + 1] == rl) {
         totalAngle += 90;
         i++;
       }
       left(totalAngle - 2 * angleRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        left(angleRamp / speedSize, speed[speedSize - i - 1]);
+      // Serial.println(totalAngle - 2 * angleRamp);
+      for (int j = 0; j < speedSize; j++) {
+        left(angleRamp / speedSize, speed[speedSize - j - 1]);
+        // Serial.println(angleRamp / speedSize);
       }
     } else if (instructions[i] == rr) {
       int totalAngle = 90;
-      for (int i = 0; i < speedSize; i++) {
-        right(angleRamp / speedSize, speed[i]);
+      for (int j = 0; j < speedSize; j++) {
+        right(angleRamp / speedSize, speed[j]);
       }
       while (i < size - 1 && instructions[i + 1] == rr) {
         totalAngle += 90;
         i++;
       }
       right(totalAngle - 2 * angleRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        right(angleRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        right(angleRamp / speedSize, speed[speedSize - j - 1]);
       }
     } else if (instructions[i] == lf) {
       int totalMm = 500 - dowelToAxelDistance;
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[speedSize - j - 1]);
       }
       forward(totalMm - 2 * mmRamp, speed[speedSize]);
-      for (int i = 0; i < speedSize; i++) {
-        forward(mmRamp / speedSize, speed[speedSize - i - 1]);
+      for (int j = 0; j < speedSize; j++) {
+        forward(mmRamp / speedSize, speed[speedSize - j - 1]);
       }
     } else if (instructions[i] == p) {
       delayMicroseconds(pauseTime);
@@ -432,7 +437,7 @@ void backward(double mm) {
 void left() {
   digitalWrite(dirPin1, HIGH);
   digitalWrite(dirPin2, HIGH);
-  for (int i = 0; i < stepsFor90Turn; i++) {
+  for (double i = 0; i < stepsFor90Turn; i++) {
     digitalWrite(stepPin1, HIGH);
     digitalWrite(stepPin2, HIGH);
     delayMicroseconds(delayInMicro * turnSpeed / 2);
@@ -444,7 +449,7 @@ void left() {
 void left(double angle, double speed) {
   digitalWrite(dirPin1, HIGH);
   digitalWrite(dirPin2, HIGH);
-  for (int i = 0; i < stepsFor360Turn * angle / 360; i++) {
+  for (double i = 0; i < floor(stepsFor360Turn * angle / 360); i++) {
     digitalWrite(stepPin1, HIGH);
     digitalWrite(stepPin2, HIGH);
     delayMicroseconds(delayInMicro / speed / 2);
@@ -456,7 +461,7 @@ void left(double angle, double speed) {
 void right() {
   digitalWrite(dirPin1, LOW);
   digitalWrite(dirPin2, LOW);
-  for (int i = 0; i < stepsFor90Turn; i++) {
+  for (double i = 0; i < stepsFor90Turn; i++) {
     digitalWrite(stepPin1, HIGH);
     digitalWrite(stepPin2, HIGH);
     delayMicroseconds(delayInMicro * turnSpeed / 2);
@@ -468,13 +473,14 @@ void right() {
 void right(double angle, double speed) {
   digitalWrite(dirPin1, LOW);
   digitalWrite(dirPin2, LOW);
-  for (int i = 0; i < stepsFor360Turn * angle / 360; i++) {
+  for (double i = 0; i < floor(stepsFor360Turn * angle / 360); i++) {
     digitalWrite(stepPin1, HIGH);
     digitalWrite(stepPin2, HIGH);
     delayMicroseconds(delayInMicro / speed / 2);
     digitalWrite(stepPin1, LOW);
     digitalWrite(stepPin2, LOW);
     delayMicroseconds(delayInMicro / speed / 2);
+    total++;
   }
 }
 void pushRight() {
