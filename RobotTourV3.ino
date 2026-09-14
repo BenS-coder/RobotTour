@@ -2,6 +2,7 @@
 #include "Arduino_LED_Matrix.h"
 #include "Math.h"
 
+//Constants for instructions
 const int sf = 0;
 const int f = 1;
 const int b = 2;
@@ -30,7 +31,6 @@ int blueButtonState = 0;
 ArduinoLEDMatrix matrix;
 
 const double wheelC = M_PI * 60;
-// double wheelDistance = 145.8; //revise
 double wheelDistance = 148.5;  //revise
 const double stepsPerOneMm = 200 / wheelC * 4;
 const double stepsFor90Turn = wheelDistance / 2 * M_PI / 2 * stepsPerOneMm;
@@ -46,25 +46,24 @@ double numberMmLinearScaled;
 double angleTurnsScaled;
 int numberPauses;
 int pauseTime = 200 * 1000;  //microseconds.
-// double speed[] = { 1, 2, 3 };
-double speed[] = { 0.146447, 0.25, 0.37059, 0.5, 0.62941, 0.75, 0.85355, 0.93301, 0.98296, 1 };
-double mmRamp = 50;
-double angleRamp = 30;
+double speed[] = { 0.146447, 0.25, 0.37059, 0.5, 0.62941, 0.75, 0.85355, 0.93301, 0.98296, 1 }; // for speed up and slow down
+double mmRamp = 50; //Distance for the speed ramp on straights
+double angleRamp = 30; //Degrees for the speed ramp on turns
 
-// int instructions[] = {sf,f,rl,rl,lf};
-// int instructions[] = {sf,f,f,rl,f,rr,b,b,rl,rl,f,lf};
-// int instructions[] = {sf,rl,rl,rl,rl,p,p,rl,rl,rl,rl,p,p,f,r,f,r,f,r,f,r};
-// int instructions[] = {rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr,rr};
-// int instructions[] = {rr,f,rr,f,rr,f,rr,f};
-// int instructions[] = {f,rr,f,rr,f,rr};
-// int instructions[] = {sf,f,rr,f,f,rr,rr,f,p,b,b,rr,f,rr,f,f,rr,f,rr,f,p,b,rr,f,f,f,rl,f,f,f,p,b,b,rl,f,f,rr,f,f,rr,f};
-// int instructions[] = {sf,rr,f,rl,f,rr,f,rr,f,p,b,rr,f,rr,f,f,rr,f,rr,f,rl,rl,f,rl,f,f,f,f};
-// int instructions[] = { sf, rr, f, rl, f, rl, f, rl, rl, f, f, rr, f,  b, rr, f, rr, f, f, rr, f, rr, f, rl, rl, f, rl, f, f, f, rl, f, f, rr, f, rl, f, p, b, rl, f, rl, f, f, rl, f, lf};
+/*
+Key:
+f = forward 500mm
+sf = Forward a short distance (First movement to go to the middle of the square)
+b = backward 500mm
+rr = rotate on the spot 90 degrees to the right
+rl = rotate on the spot 90 degrees to the left
+lf = Forward a short distance (Last movement so that measuring point is on target point)
+p = pause
+*/
+
 int instructions[] = {sf,f,f,rr,f,b,b,rr,b,f,f,f,rl,b,rl,f,f,rl,f,b};
 int instructions[] = {sf,f,f,rr,f,b,b,rr,b,f,f,f,rl,b,rl,f,f,rl,f,b,b,lf};
-// int instructions[] = {rl,p,rl,p,rl,p,rl,p,rl,rl,rl,rl};
-// int instructions[] = {sf,rr,f,rl,f,rl,  f,rr,b,lf};
-// int instructions[] = {rr,p,rr,p,rr,p,rr,p,rr,rr,rr,rr};
+
 
 
 int total = 0; //for debugging
@@ -73,7 +72,6 @@ long targetTimeMicro = 60 * 1000000;
 //Always Minus 7-8 seconds to target time
 //Better to be overtime than under
 
-// const unsigned int delayInMicro = targetTimeMicro / (numberMmLinearScaled * stepsPerOneMm + angleTurnsScaled * stepsFor90Turn * turnSpeed) / 1.1;
 long delayInMicro = 2000;
 //Pre run: Push wheels in, check screws, align with ruler
 
@@ -109,6 +107,7 @@ void setup() {
   initializeDelay();
 }
 void loop() {
+  //Led
   matrix.beginDraw();
   matrix.stroke(0xFFFFFFFF);
   matrix.textScrollSpeed(60);
@@ -143,6 +142,8 @@ void loop() {
     }
   }
 }
+
+//Goes through instructions and set delayInMicro to reflect target time. Doesn't cause the robot to move
 void initializeDelay() {
   numberMmLinearScaled = 0;
   angleTurnsScaled = 0;
@@ -222,6 +223,8 @@ void initializeDelay() {
   targetTimeMicro -= numberPauses * pauseTime;
   delayInMicro = targetTimeMicro / (numberMmLinearScaled * stepsPerOneMm + angleTurnsScaled / 90 * stepsFor90Turn);
 }
+
+//Runs through instructions
 void runInstructions() {
   int size = sizeof(instructions) / sizeof(instructions[0]);
 
@@ -317,6 +320,8 @@ void runInstructions() {
     }
   }
 }
+
+//Test code for speed ramp
 void speedTest() {
 
   // instructions[] = {l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l};
@@ -344,6 +349,8 @@ void speedTest() {
     right(angleRamp / speedSize, speed[speedSize - i - 1]);
   }
 }
+
+//Test code for checking accuracy of robot
 void runTest() {
   int save = delayInMicro;
   delayInMicro = 2000;
@@ -369,6 +376,7 @@ void runTest() {
 
   delayInMicro = save;
 }
+
 void forward(double mm) {
 
   digitalWrite(dirPin1, HIGH);
